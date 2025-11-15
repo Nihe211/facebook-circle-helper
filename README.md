@@ -1,1 +1,1 @@
-# ego-facebook-circle-helper
+# facebook-circle-helper
