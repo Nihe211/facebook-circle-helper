@@ -1,0 +1,9 @@
+networkx
+python-louvain
+node2vec
+scikit-learn
+matplotlib
+streamlit
+pandas
+python-igraph
+leidenalg
