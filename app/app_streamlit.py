@@ -1,11 +1,14 @@
 import streamlit as st
 from pathlib import Path
 import sys
-from pathlib import Path
+import pandas as pd
+
+import networkx as nx                # <<< NEW
+import matplotlib.pyplot as plt      # <<< NEW
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-import pandas as pd
 
 from src.data_loader import load_ego_graph
 from src.community_baseline import louvain_communities
@@ -36,6 +39,40 @@ def build_circles_from_partition(partition: dict):
     for n, cid in partition.items():
         comm_to_nodes.setdefault(cid, []).append(n)
     return comm_to_nodes
+
+
+# ==== Vẽ ego-network tô màu theo community (Louvain / Leiden) ====  # <<< NEW
+def plot_communities(G: nx.Graph, partition: dict, title: str = ""):
+    """
+    Vẽ ego-network với màu theo community.
+    partition: dict node -> community_id
+    """
+    communities = sorted(set(partition.values()))
+    comm_to_color = {c: i for i, c in enumerate(communities)}
+
+    node_colors = [comm_to_color[partition[n]] for n in G.nodes()]
+    pos = nx.spring_layout(G, seed=42)
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    nx.draw_networkx_nodes(
+        G,
+        pos,
+        node_size=40,
+        node_color=node_colors,
+        cmap=plt.cm.get_cmap("tab20", len(communities)),
+        ax=ax,
+    )
+    nx.draw_networkx_edges(
+        G,
+        pos,
+        alpha=0.25,
+        width=0.5,
+        ax=ax,
+    )
+    ax.set_title(title)
+    ax.axis("off")
+    fig.tight_layout()
+    return fig
 
 
 def main():
@@ -122,6 +159,15 @@ def main():
         ]
         df_sizes = pd.DataFrame(rows).sort_values("Size", ascending=False)
         st.dataframe(df_sizes, use_container_width=True)
+
+    # --- Hình minh hoạ ego-network tô màu theo community ---  # <<< NEW
+    with st.expander("👀 Xem đồ thị ego-network tô màu theo cộng đồng", expanded=False):
+        fig = plot_communities(
+            G,
+            partition,
+            title=f"Ego {ego_id} - Communities by {algo}",
+        )
+        st.pyplot(fig)
 
     # ========== PHẦN 2: KHÁM PHÁ 1 CIRCLE ==========
     st.markdown("---")
